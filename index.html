@@ -1,10 +1,15 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Duelo Vikingo de Objetivos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
+  [hidden]{ display:none !important; }
   :root{
     color-scheme: dark;
     --bg-0: #060713;
@@ -419,6 +424,13 @@
   .turn-note b.blue{ color: var(--blue); }
   .turn-note b.red{ color: var(--red); }
 
+  .next-wrap{ display:flex; justify-content:center; margin-top: 14px; }
+  .next-wrap .btn-primary{ animation: nextPulse 1.4s ease-in-out infinite; }
+  @keyframes nextPulse{
+    0%,100%{ box-shadow: 0 5px 0 #b98d16, 0 0 0 rgba(255,207,74,0); }
+    50%{ box-shadow: 0 5px 0 #b98d16, 0 0 16px rgba(255,207,74,.55); }
+  }
+
   /* ================= controls / footer ================= */
   .controls{
     max-width: 1180px;
@@ -455,6 +467,50 @@
     font-size: 10px;
     color: var(--ink-faint);
     position:relative; z-index:2;
+  }
+
+  /* ================= start overlay ================= */
+  .start-overlay{
+    position: fixed; inset:0; z-index: 110;
+    background:
+      radial-gradient(ellipse 80% 55% at 50% 30%, rgba(90,50,180,.35), transparent 65%),
+      rgba(4,5,14,.96);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+  }
+  .start-card{
+    position: relative;
+    width: min(560px, 100%);
+    text-align:center;
+    padding: 20px;
+  }
+  .start-tag{
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing:.1em;
+    color: var(--gold);
+    text-shadow: 0 0 10px var(--gold-glow);
+    margin-bottom: 18px;
+  }
+  .start-title{
+    font-family: var(--font-display);
+    font-size: clamp(24px, 6vw, 38px);
+    line-height: 1.4;
+    margin: 0 0 18px;
+    color: var(--ink);
+    text-shadow: 0 0 24px rgba(120,90,255,.5);
+  }
+  .start-desc{
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+    max-width: 440px;
+    margin: 0 auto 30px;
+  }
+  .start-play{
+    font-size: 15px;
+    padding: 16px 34px;
+    animation: nextPulse 1.6s ease-in-out infinite;
   }
 
   /* ================= final overlay ================= */
@@ -527,6 +583,8 @@
   }
   .btn-primary:active{ transform: translateY(3px); box-shadow: 0 2px 0 #b98d16; }
 </style>
+</head>
+<body>
 
 <div class="starfield"></div>
 <div class="crt"></div>
@@ -574,6 +632,9 @@
 
       <div class="feedback-banner" id="feedbackBanner"></div>
       <div class="turn-note" id="turnNote"></div>
+      <div class="next-wrap" id="nextWrap" hidden>
+        <button type="button" class="btn-primary" id="nextRoundBtn">CONTINUAR ▶</button>
+      </div>
     </section>
   </div>
 </main>
@@ -585,6 +646,15 @@
 </div>
 
 <footer class="legal">Duelo Vikingo de Objetivos · actividad de aula · los puntajes se reinician al recargar</footer>
+
+<div class="start-overlay" id="startOverlay">
+  <div class="start-card">
+    <div class="start-tag">⚔ ACTIVIDAD DE AULA ⚔</div>
+    <h1 class="start-title">DUELO VIKINGO<br>DE OBJETIVOS</h1>
+    <p class="start-desc">Dos equipos, un duelo relámpago de cultura general para ganar el turno, y 15 rondas sobre cómo redactar un objetivo bien formulado.</p>
+    <button type="button" class="btn-primary start-play" id="playBtn">▶ JUGAR</button>
+  </div>
+</div>
 
 <div class="final-overlay" id="finalOverlay" hidden>
   <div class="final-card">
@@ -735,7 +805,7 @@
 
   var POINTS_PER_ROUND = 100;
   var MAX_SCORE = OBJETIVOS.length * POINTS_PER_ROUND;
-  var TIME_DUEL = 10;
+  var TIME_DUEL = 60;
   var TIME_TRIVIA_ANSWER = 8;
   var TIME_OBJETIVO_ANSWER = 22;
 
@@ -843,6 +913,7 @@
   var elStage = $("stage");
   var elFighterBlue = $("fighterBlue"), elFighterRed = $("fighterRed");
   var elImpact = $("impactBurst");
+  var elNextWrap = $("nextWrap"), elNextBtn = $("nextRoundBtn");
 
   function clearTimer(){ if(timerId){ clearInterval(timerId); timerId = null; } }
 
@@ -923,14 +994,17 @@
     elOptions.innerHTML = "";
     elFighterChoice.hidden = true;
     elBuzzers.hidden = false;
+    elNextWrap.hidden = true;
     $("buzzBlue").disabled = false;
     $("buzzRed").disabled = false;
     elTurnNote.textContent = "Presionen su botón para intentar responder primero";
     setFeedback("");
     startTimer(TIME_DUEL, function(){
-      elTurnNote.textContent = "Nadie pulsó a tiempo — se pasa la ronda";
+      elTurnNote.textContent = "Nadie pulsó a tiempo";
       setFeedback("RONDA SIN RESPUESTA", "info");
-      setTimeout(nextRound, 1400);
+      $("buzzBlue").disabled = true;
+      $("buzzRed").disabled = true;
+      elNextWrap.hidden = false;
     });
   }
 
@@ -957,9 +1031,9 @@
       });
     });
 
-    startTimer(TIME_TRIVIA_ANSWER, function(){
-      answerDuel(-1, t);
-    });
+    clearTimer();
+    elTimerFill.style.width = "100%";
+    elTimerFill.classList.remove("low");
   }
 
   function answerDuel(idx, t){
@@ -1049,9 +1123,9 @@
       });
     });
 
-    startTimer(TIME_OBJETIVO_ANSWER, function(){
-      answerObjetivo(-1, o);
-    });
+    clearTimer();
+    elTimerFill.style.width = "100%";
+    elTimerFill.classList.remove("low");
   }
 
   function answerObjetivo(idx, o){
@@ -1083,7 +1157,7 @@
         (winner === "blue" ? elFighterBlue : elFighterRed).classList.add("lose");
         setFeedback("GOLPE FALLIDO — sin puntos", "fail");
       }
-      setTimeout(nextRound, 1900);
+      setTimeout(function(){ elNextWrap.hidden = false; }, 600);
     });
   }
 
@@ -1144,11 +1218,28 @@
   $("resetGame").addEventListener("click", newGame);
   $("playAgain").addEventListener("click", newGame);
   $("closeFinal").addEventListener("click", function(){ $("finalOverlay").hidden = true; });
+  elNextBtn.addEventListener("click", function(){
+    elNextWrap.hidden = true;
+    nextRound();
+  });
 
   /* ---------------- boot ---------------- */
-  function start(){
-    updateHud();
+  $("finalOverlay").addEventListener("click", function(e){
+    if(e.target === $("finalOverlay")) $("finalOverlay").hidden = true;
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && !$("finalOverlay").hidden) $("finalOverlay").hidden = true;
+  });
+
+  $("playBtn").addEventListener("click", function(){
+    ensureCtx();
+    $("startOverlay").hidden = true;
     renderDuel();
+  });
+
+  function start(){
+    $("finalOverlay").hidden = true;
+    updateHud();
   }
 
   if(window.claude && window.claude.hot){
@@ -1158,5 +1249,5 @@
   }
 })();
 </script>
-
-</body></html>
+</body>
+</html>
