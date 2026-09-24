@@ -1,0 +1,1162 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Duelo Vikingo de Objetivos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    color-scheme: dark;
+    --bg-0: #060713;
+    --bg-1: #0b0e22;
+    --bg-2: #12163a;
+    --panel: #10132c;
+    --panel-edge: #2a2f66;
+    --ink: #eef0ff;
+    --ink-dim: #9aa0d4;
+    --ink-faint: #5b6099;
+
+    --blue: #2fb4ff;
+    --blue-deep: #0d6fc4;
+    --blue-glow: rgba(47,180,255,.55);
+    --blue-dim: rgba(47,180,255,.14);
+
+    --red: #ff3d5e;
+    --red-deep: #c4123a;
+    --red-glow: rgba(255,61,94,.55);
+    --red-dim: rgba(255,61,94,.14);
+
+    --gold: #ffcf4a;
+    --gold-glow: rgba(255,207,74,.6);
+    --green: #43e0a0;
+
+    --font-display: "Press Start 2P", "Courier New", monospace;
+    --font-body: "Rubik", -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Space Mono", ui-monospace, monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    background: var(--bg-0);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection{ background: var(--gold); color:#1a1400; }
+  button{ font-family: inherit; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
+  }
+
+  /* ================= backdrop ================= */
+  .crt{
+    position: fixed; inset:0;
+    pointer-events:none;
+    z-index: 1;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0px, rgba(255,255,255,.028) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse 90% 60% at 50% 0%, rgba(80,60,200,.18), transparent 60%);
+    mix-blend-mode: screen;
+  }
+  .starfield{
+    position: fixed; inset:0; z-index:0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 10% 20%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1.5px 1.5px at 80% 10%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,.35), transparent),
+      radial-gradient(1.5px 1.5px at 30% 85%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 45% 40%, rgba(255,255,255,.3), transparent);
+    background-repeat: no-repeat;
+  }
+
+  .wrap{ position:relative; z-index:2; max-width: 1180px; margin-inline:auto; padding-inline: 16px; }
+
+  /* ================= HUD ================= */
+  .hud{
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 50;
+    background: linear-gradient(180deg, rgba(6,7,19,.97), rgba(6,7,19,.9));
+    border-bottom: 2px solid var(--panel-edge);
+    padding-block: 10px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.5);
+  }
+  .hud-inner{
+    max-width: 1180px; margin-inline:auto; padding-inline:16px;
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items:center;
+    gap: 10px;
+  }
+  .hud-team{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .hud-team.red{ align-items:flex-end; }
+  .hud-label{
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing: .04em;
+    display:flex; align-items:center; gap:6px;
+  }
+  .hud-team.blue .hud-label{ color: var(--blue); }
+  .hud-team.red .hud-label{ color: var(--red); }
+  .hud-bar-track{
+    width: 100%;
+    height: 14px;
+    background: #05060f;
+    border: 2px solid var(--panel-edge);
+    border-radius: 3px;
+    overflow:hidden;
+    position:relative;
+  }
+  .hud-bar-fill{
+    height:100%;
+    width: 0%;
+    transition: width .6s cubic-bezier(.2,.9,.3,1.3);
+    position: relative;
+  }
+  .hud-team.blue .hud-bar-fill{ background: linear-gradient(90deg, var(--blue-deep), var(--blue)); box-shadow: 0 0 10px var(--blue-glow); margin-left:auto; }
+  .hud-team.red .hud-bar-fill{ background: linear-gradient(270deg, var(--red-deep), var(--red)); box-shadow: 0 0 10px var(--red-glow); }
+  .hud-bar-fill.critical{ animation: hpCritical .6s ease-in-out infinite; }
+  @keyframes hpCritical{
+    0%,100%{ filter: brightness(1); }
+    50%{ filter: brightness(1.9) saturate(1.4); }
+  }
+  .hud-score{
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-team.blue .hud-score{ color: var(--blue); }
+  .hud-team.red .hud-score{ color: var(--red); }
+  .hud-score-row{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .hud-team.red .hud-score-row{ justify-content:flex-end; }
+  .hud-fighter-name{
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--ink-faint);
+    letter-spacing:.03em;
+    white-space:nowrap;
+  }
+
+  .hud-center{ text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .hud-round{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing:.04em;
+    white-space:nowrap;
+  }
+  .vs-badge{
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--gold);
+    text-shadow: 0 0 10px var(--gold-glow);
+  }
+
+  /* ================= arena ================= */
+  main.arena{
+    position: relative;
+    z-index: 2;
+    max-width: 1180px;
+    margin: 18px auto 0;
+    padding-inline: 16px;
+  }
+  .stage{
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(90,50,180,.35), transparent 70%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 2px solid var(--panel-edge);
+    min-height: 420px;
+    padding: 18px 10px 20px;
+    display:flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stage-floor{
+    position:absolute; left:0; right:0; bottom:0; height: 40%;
+    background:
+      linear-gradient(0deg, rgba(80,60,200,.25), transparent),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0, rgba(255,255,255,.05) 1px, transparent 1px, transparent 34px);
+    -webkit-mask-image: linear-gradient(0deg, rgba(0,0,0,.8), transparent);
+    mask-image: linear-gradient(0deg, rgba(0,0,0,.8), transparent);
+    pointer-events: none;
+  }
+  .stage.shake{ animation: shake .35s ease; }
+  body.screen-shake{ animation: shake .35s ease; }
+  @keyframes shake{
+    0%,100%{ transform: translate(0,0); }
+    20%{ transform: translate(-6px,2px); }
+    40%{ transform: translate(5px,-3px); }
+    60%{ transform: translate(-4px,3px); }
+    80%{ transform: translate(3px,-2px); }
+  }
+
+  .fighter-wrap{
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    height: min(86vh, 920px);
+    width: 30vw;
+    max-width: 480px;
+    min-width: 150px;
+    display:flex;
+    align-items: flex-end;
+    justify-content:center;
+    z-index: 3;
+    pointer-events: none;
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,.6));
+    transition: transform .55s cubic-bezier(.3,.1,.2,1);
+  }
+  .fighter-wrap.blue{ left: 0; transform: translateX(0); }
+  .fighter-wrap.red{ right: 0; transform: translateX(0); }
+  .fighter-wrap img{ width: 100%; height: 100%; object-fit: contain; object-position: bottom center; display:block; }
+  .fighter-wrap .idle{ width:100%; height:100%; animation: idleBounce 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+  @keyframes idleBounce{
+    0%,100%{ transform: translateY(0) rotate(0deg); }
+    50%{ transform: translateY(-1.5%) rotate(-0.6deg); }
+  }
+
+  .fighter-wrap.clash-in{ transform: translateX(21vw); }
+  .fighter-wrap.red.clash-in{ transform: translateX(-21vw); }
+  .fighter-wrap.win .idle{ animation: victoryPulse .7s ease-in-out 2; }
+  @keyframes victoryPulse{
+    0%,100%{ transform: translateY(0) scale(1); filter: brightness(1); }
+    50%{ transform: translateY(-6%) scale(1.05); filter: brightness(1.4); }
+  }
+  .fighter-wrap.lose .idle{ animation: flinch .5s ease; }
+  @keyframes flinch{
+    0%{ transform: rotate(0deg) translateX(0); }
+    30%{ transform: rotate(6deg) translateX(-4%); filter: brightness(.6) saturate(0); }
+    60%{ transform: rotate(-3deg) translateX(2%); }
+    100%{ transform: rotate(0deg) translateX(0); }
+  }
+
+  .impact-burst{
+    position:absolute;
+    left:50%; top:46%;
+    width: 10px; height:10px;
+    transform: translate(-50%,-50%) scale(0);
+    border-radius:50%;
+    background: radial-gradient(circle, #fff 0%, var(--gold) 35%, rgba(255,207,74,0) 70%);
+    z-index: 6;
+    pointer-events:none;
+    opacity:0;
+  }
+  .impact-burst.fire{
+    animation: burst .5s ease-out;
+  }
+  @keyframes burst{
+    0%{ opacity:1; transform: translate(-50%,-50%) scale(0); }
+    35%{ opacity:1; transform: translate(-50%,-50%) scale(1); }
+    100%{ opacity:0; transform: translate(-50%,-50%) scale(2.4); }
+  }
+
+  /* ================= challenge card ================= */
+  .challenge-card{
+    position: relative;
+    z-index: 5;
+    width: min(560px, 100%);
+    background: linear-gradient(180deg, rgba(16,19,44,.96), rgba(10,12,30,.96));
+    border: 2px solid var(--panel-edge);
+    border-radius: 12px;
+    padding: 18px 18px 20px;
+    box-shadow: 0 0 0 4px rgba(0,0,0,.25), 0 20px 50px rgba(0,0,0,.55);
+  }
+  .phase-tag{
+    display:inline-block;
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing:.05em;
+    padding: 6px 9px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+  .phase-tag.duel{ color:#1a1400; background: var(--gold); }
+  .phase-tag.objetivo{ color:#fff; background: linear-gradient(90deg, var(--blue-deep), var(--red-deep)); }
+
+  .challenge-title{
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: clamp(17px, 3.4vw, 21px);
+    line-height: 1.3;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  .challenge-context{
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+    margin: 0 0 14px;
+  }
+
+  .timer-track{
+    height: 8px;
+    background: #05060f;
+    border: 1px solid var(--panel-edge);
+    border-radius: 4px;
+    overflow:hidden;
+    margin-bottom: 16px;
+  }
+  .timer-fill{
+    height:100%;
+    width:100%;
+    background: linear-gradient(90deg, var(--green), var(--gold));
+    transition: width 1s linear, background .3s;
+  }
+  .timer-fill.low{ background: linear-gradient(90deg, var(--gold), var(--red)); }
+
+  .options-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  @media (max-width:480px){ .options-grid{ grid-template-columns: 1fr; } }
+
+  .opt-btn{
+    text-align:left;
+    background: var(--bg-1);
+    border: 2px solid var(--panel-edge);
+    color: var(--ink);
+    padding: 11px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.4;
+    cursor: pointer;
+    display:flex; gap:9px; align-items:flex-start;
+    transition: border-color .15s, background .15s, transform .1s;
+  }
+  .opt-btn .k{
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--ink-faint);
+    flex-shrink:0;
+    margin-top: 2px;
+  }
+  .opt-btn:hover:not(:disabled){ border-color: var(--ink-faint); transform: translateY(-1px); }
+  .opt-btn:disabled{ cursor:not-allowed; opacity:.55; }
+  .opt-btn.locked-team-blue:not(:disabled){ border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue) inset; }
+  .opt-btn.locked-team-red:not(:disabled){ border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset; }
+  .opt-btn.correct{ border-color: var(--green); background: rgba(67,224,160,.14); }
+  .opt-btn.wrong{ border-color: var(--red); background: rgba(255,61,94,.14); }
+
+  .buzzers{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .buzzer{
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: .03em;
+    color: #fff;
+    padding: 16px 10px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.35), 0 8px 18px rgba(0,0,0,.4);
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .buzzer.blue{ background: linear-gradient(180deg, var(--blue), var(--blue-deep)); }
+  .buzzer.red{ background: linear-gradient(180deg, var(--red), var(--red-deep)); }
+  .buzzer:active:not(:disabled){ transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 4px 10px rgba(0,0,0,.4); }
+  .buzzer:disabled{ opacity:.35; cursor:not-allowed; box-shadow:none; }
+
+  .feedback-banner{
+    margin-top: 14px;
+    min-height: 20px;
+    text-align:center;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: .03em;
+    opacity:0;
+    transform: translateY(6px) scale(.9);
+    transition: opacity .25s, transform .25s;
+  }
+  .feedback-banner.show{ opacity:1; transform: translateY(0) scale(1); }
+  .feedback-banner.win{ color: var(--green); text-shadow: 0 0 12px rgba(67,224,160,.6); }
+  .feedback-banner.fail{ color: var(--red); text-shadow: 0 0 12px var(--red-glow); }
+  .feedback-banner.info{ color: var(--gold); text-shadow: 0 0 12px var(--gold-glow); }
+
+  .fighter-choice{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .fc-btn{
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background: var(--bg-1);
+    border: 2px solid var(--panel-edge);
+    color: var(--ink);
+    padding: 16px 10px;
+    border-radius: 10px;
+    cursor:pointer;
+    transition: border-color .15s, transform .1s;
+  }
+  .fc-btn:hover{ transform: translateY(-2px); }
+  .fc-btn .fc-icon{ font-size: 26px; line-height:1; }
+  .fc-btn .fc-role{ font-family: var(--font-display); font-size: 10.5px; letter-spacing:.03em; }
+  .fc-btn .fc-name{ font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-dim); }
+  .fc-btn.blue{ }
+  .fc-btn.blue:hover{ border-color: var(--blue); }
+  .fc-btn.red:hover{ border-color: var(--red); }
+
+  .turn-note{
+    text-align:center;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+  .turn-note b.blue{ color: var(--blue); }
+  .turn-note b.red{ color: var(--red); }
+
+  /* ================= controls / footer ================= */
+  .controls{
+    max-width: 1180px;
+    margin: 20px auto 0;
+    padding-inline: 16px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    position: relative;
+    z-index: 2;
+  }
+  .ctrl-btn{
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    padding: 8px 13px;
+    border-radius: 7px;
+    cursor:pointer;
+  }
+  .ctrl-btn:hover{ border-color: var(--gold); color: var(--gold); }
+  .hint{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+  }
+  footer.legal{
+    text-align:center;
+    padding: 30px 16px 48px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    position:relative; z-index:2;
+  }
+
+  /* ================= final overlay ================= */
+  .final-overlay{
+    position: fixed; inset:0; z-index: 100;
+    background: rgba(4,5,14,.92);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+  }
+  .final-card{
+    position: relative;
+    width: min(480px, 100%);
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 28px 22px;
+    text-align:center;
+    box-shadow: 0 0 60px rgba(255,207,74,.25);
+  }
+  .final-close{
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--panel-edge);
+    background: var(--panel);
+    color: var(--ink-dim);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .final-close:hover{ border-color: var(--gold); color: var(--gold); }
+  .final-tag{
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing:.08em;
+    margin-bottom: 10px;
+  }
+  .final-winner{
+    font-family: var(--font-display);
+    font-size: clamp(22px, 6vw, 30px);
+    margin: 6px 0 18px;
+    text-shadow: 0 0 18px currentColor;
+  }
+  .final-winner.blue{ color: var(--blue); }
+  .final-winner.red{ color: var(--red); }
+  .final-winner.tie{ color: var(--gold); }
+  .final-scores{
+    display:flex; justify-content:center; gap: 26px;
+    margin-bottom: 22px;
+    font-family: var(--font-mono);
+  }
+  .final-scores .fs{ text-align:center; }
+  .final-scores .fs .n{ font-size: 22px; font-weight:700; font-variant-numeric: tabular-nums; }
+  .final-scores .blue .n{ color: var(--blue); }
+  .final-scores .red .n{ color: var(--red); }
+  .final-scores .lbl{ font-size: 9px; color: var(--ink-faint); margin-top:4px; letter-spacing:.05em; }
+
+  .btn-primary{
+    font-family: var(--font-display);
+    font-size: 12px;
+    color:#1a1400;
+    background: var(--gold);
+    border:none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    cursor:pointer;
+    box-shadow: 0 5px 0 #b98d16;
+  }
+  .btn-primary:active{ transform: translateY(3px); box-shadow: 0 2px 0 #b98d16; }
+</style>
+
+<div class="starfield"></div>
+<div class="crt"></div>
+
+<div class="fighter-wrap blue" id="fighterBlue"><div class="idle"><img id="fighterBlueImg" src="personajes/blue-m.webp" alt="Guerrero vikingo del equipo azul"></div></div>
+<div class="fighter-wrap red" id="fighterRed"><div class="idle"><img id="fighterRedImg" src="personajes/red-m.webp" alt="Guerrero vikingo del equipo rojo"></div></div>
+
+<header class="hud">
+  <div class="hud-inner">
+    <div class="hud-team blue">
+      <div class="hud-label">⚔ EQUIPO AZUL</div>
+      <div class="hud-bar-track"><div class="hud-bar-fill" id="barBlue"></div></div>
+      <div class="hud-score-row"><div class="hud-score" id="scoreBlue">0 PTS</div><div class="hud-fighter-name" id="hudNameBlue">GUERRERO BJÖRN</div></div>
+    </div>
+    <div class="hud-center">
+      <div class="hud-round" id="roundLabel">RONDA 1/15</div>
+      <div class="vs-badge">VS</div>
+    </div>
+    <div class="hud-team red">
+      <div class="hud-label">EQUIPO ROJO ⚔</div>
+      <div class="hud-bar-track"><div class="hud-bar-fill" id="barRed"></div></div>
+      <div class="hud-score-row"><div class="hud-score" id="scoreRed">0 PTS</div><div class="hud-fighter-name" id="hudNameRed">GUERRERO RAGNAR</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="arena">
+  <div class="stage" id="stage">
+    <div class="stage-floor"></div>
+    <div class="impact-burst" id="impactBurst"></div>
+
+    <section class="challenge-card">
+      <span class="phase-tag duel" id="phaseTag">DUELO RELÁMPAGO</span>
+      <h2 class="challenge-title" id="challengeTitle">Cargando…</h2>
+      <p class="challenge-context" id="challengeContext"></p>
+
+      <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+
+      <div class="options-grid" id="optionsGrid" hidden></div>
+      <div class="fighter-choice" id="fighterChoice" hidden></div>
+      <div class="buzzers" id="buzzers">
+        <button type="button" class="buzzer blue" id="buzzBlue">PULSA AZUL</button>
+        <button type="button" class="buzzer red" id="buzzRed">PULSA ROJO</button>
+      </div>
+
+      <div class="feedback-banner" id="feedbackBanner"></div>
+      <div class="turn-note" id="turnNote"></div>
+    </section>
+  </div>
+</main>
+
+<div class="controls">
+  <button type="button" class="ctrl-btn" id="soundToggle">🔊 Sonido: activado</button>
+  <span class="hint">Duelo vikingo · 15 rondas · basado en el banco de objetivos UNAB</span>
+  <button type="button" class="ctrl-btn" id="resetGame">↺ Nueva partida</button>
+</div>
+
+<footer class="legal">Duelo Vikingo de Objetivos · actividad de aula · los puntajes se reinician al recargar</footer>
+
+<div class="final-overlay" id="finalOverlay" hidden>
+  <div class="final-card">
+    <button type="button" class="final-close" id="closeFinal" aria-label="Cerrar">✕</button>
+    <div class="final-tag">FIN DE LA BATALLA</div>
+    <div class="final-winner" id="finalWinner">—</div>
+    <div class="final-scores">
+      <div class="fs blue"><div class="n" id="finalBlue">0</div><div class="lbl">AZUL</div></div>
+      <div class="fs red"><div class="n" id="finalRed">0</div><div class="lbl">ROJO</div></div>
+    </div>
+    <button type="button" class="btn-primary" id="playAgain">JUGAR OTRA VEZ</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==================================================================
+     DATA: 15 preguntas "duelo relámpago" (cultura general) y
+     15 preguntas "objetivo bien formulado" (banco UNAB)
+     ================================================================== */
+  var TRIVIA = [
+    { q:"¿Cuántos huesos tiene el cuerpo humano adulto, en promedio?", opts:["206","186","226","246"], correct:0 },
+    { q:"¿En qué país se encuentra la Torre Eiffel?", opts:["España","Francia","Italia","Bélgica"], correct:1 },
+    { q:"¿Cuál es el planeta más grande del sistema solar?", opts:["Saturno","Urano","Júpiter","Neptuno"], correct:2 },
+    { q:"¿Qué gas es el más abundante en la atmósfera terrestre?", opts:["Oxígeno","Dióxido de carbono","Hidrógeno","Nitrógeno"], correct:3 },
+    { q:"¿Quién pintó la Mona Lisa?", opts:["Leonardo da Vinci","Rafael","Miguel Ángel","Donatello"], correct:0 },
+    { q:"¿Cuál es la capital de Australia?", opts:["Sídney","Canberra","Melbourne","Perth"], correct:1 },
+    { q:"¿En qué continente se encuentra Egipto?", opts:["Asia","Europa","África","Oceanía"], correct:2 },
+    { q:"¿Cuántos jugadores tiene un equipo de fútbol en la cancha, sin contar suplentes?", opts:["9","10","12","11"], correct:3 },
+    { q:"¿Qué metal es líquido a temperatura ambiente?", opts:["Mercurio","Hierro","Plomo","Aluminio"], correct:0 },
+    { q:"¿Qué órgano del cuerpo humano bombea la sangre?", opts:["Pulmón","Corazón","Hígado","Riñón"], correct:1 },
+    { q:"¿Cuál es el océano más grande del mundo?", opts:["Atlántico","Índico","Pacífico","Ártico"], correct:2 },
+    { q:"¿En qué año llegó el ser humano a la Luna por primera vez?", opts:["1969","1965","1972","1959"], correct:0 },
+    { q:"¿Cuál es la moneda oficial de Japón?", opts:["Yuan","Won","Ringgit","Yen"], correct:3 },
+    { q:"¿Cuál es el idioma más hablado del mundo como lengua materna?", opts:["Inglés","Mandarín","Español","Hindi"], correct:1 },
+    { q:"¿Qué instrumento se usa para medir la temperatura?", opts:["Barómetro","Higrómetro","Termómetro","Anemómetro"], correct:2 }
+  ];
+
+  var OBJETIVOS = [
+    { titulo:"Residuos en el campus", contexto:"En una universidad, los contenedores de reciclaje reciben residuos mezclados. Antes de invertir en nuevos puntos de recolección, el equipo necesita conocer las prácticas actuales de estudiantes y personal.",
+      opts:[
+        "Diagnosticar las prácticas de separación de residuos mediante observaciones y encuestas en el campus, para identificar fallas en el uso de contenedores.",
+        "Diagnosticar las prácticas de separación de residuos mediante encuestas a estudiantes y personal, para determinar cuántos contenedores nuevos instalar en el campus.",
+        "Clasificar los residuos encontrados mediante observaciones de contenedores en el campus, para estimar el volumen total de basura producido por la universidad.",
+        "Diagnosticar las prácticas de separación de residuos mediante la revisión de compras de contenedores, para identificar fallas en su uso por la comunidad."
+      ], correct:0 },
+    { titulo:"Turnos en un centro de salud", contexto:"Un centro de salud asigna citas por teléfono. Los pacientes reportan esperas y citas duplicadas. El equipo puede diseñar una propuesta, pero todavía no tiene autorización para ponerla en funcionamiento.",
+      opts:[
+        "Diseñar un sistema de citas mediante el análisis del proceso y prototipos con pacientes, para incorporarlo al servicio y reducir las duplicaciones.",
+        "Diseñar una propuesta de citas mediante entrevistas a pacientes y prototipos, para aumentar el número de consultas disponibles por día.",
+        "Diseñar una propuesta de asignación de citas mediante el análisis del proceso y prototipos, para orientar la reducción de esperas y duplicaciones.",
+        "Evaluar la asignación de citas mediante entrevistas y análisis de llamadas, para reducir las esperas y duplicaciones del centro de salud."
+      ], correct:2 },
+    { titulo:"Iluminación de aulas", contexto:"En varias aulas se dejan encendidas las luces al terminar la jornada. El equipo quiere estudiar el consumo y proponer ajustes, sin intervenir la instalación eléctrica.",
+      opts:[
+        "Proponer ajustes de iluminación mediante mediciones de consumo y observaciones en las aulas, para instalar controles de encendido al finalizar la jornada.",
+        "Analizar el uso de iluminación mediante registros de consumo y observación en las aulas, para proponer medidas de ahorro según los horarios.",
+        "Analizar la iluminación mediante encuestas a docentes y estudiantes de las aulas, para proponer cambios en el color y distribución de luces.",
+        "Proponer medidas de ahorro mediante registros de consumo eléctrico de todo el edificio, para reducir los costos de iluminación de las aulas."
+      ], correct:1 },
+    { titulo:"Biblioteca comunitaria", contexto:"Una biblioteca registra préstamos en cuadernos y a veces pierde el seguimiento de los libros. Se busca elaborar un prototipo digital que pueda probarse con sus bibliotecarios.",
+      opts:[
+        "Desarrollar un registro digital de préstamos mediante entrevistas y pruebas con bibliotecarios, para sustituir los cuadernos en la operación diaria.",
+        "Desarrollar un prototipo de registro de libros mediante entrevistas a usuarios y pruebas de búsqueda, para actualizar el catálogo de libros.",
+        "Diseñar pantallas de registro de préstamos mediante entrevistas a bibliotecarios, para conocer cuáles libros se extravían con mayor frecuencia.",
+        "Desarrollar un prototipo de registro de préstamos mediante entrevistas y pruebas con bibliotecarios, para facilitar el seguimiento de los libros."
+      ], correct:3 },
+    { titulo:"Agua en un edificio", contexto:"Los residentes de un edificio observan aumentos en el consumo de agua, pero desconocen si se deben a fugas o a hábitos de uso. El equipo solo puede evaluar el problema y recomendar acciones.",
+      opts:[
+        "Evaluar el consumo de agua mediante lecturas e inspecciones de tuberías, para diseñar un plan de reparación de las fugas detectadas.",
+        "Analizar los hábitos de uso del agua mediante consultas a residentes e inspecciones, para recomendar restricciones horarias de consumo en el edificio.",
+        "Evaluar las causas del consumo de agua mediante lecturas, inspecciones y consultas a residentes, para recomendar acciones de ahorro pertinentes.",
+        "Comparar lecturas de agua del edificio mediante registros mensuales y consultas a residentes, para calcular el incremento de las facturas de servicios."
+      ], correct:2 },
+    { titulo:"Rutas de transporte universitario", contexto:"Los usuarios de una ruta universitaria dicen que los tiempos de llegada son impredecibles. Se dispone de registros de recorridos y se puede consultar a los pasajeros para plantear mejoras.",
+      opts:[
+        "Formular ajustes a los horarios de la ruta mediante registros de recorridos y consultas a pasajeros, para reducir la incertidumbre de llegada.",
+        "Formular ajustes a los horarios de la ruta mediante consultas a pasajeros y registros, para disminuir el costo de operación del transporte.",
+        "Analizar los tiempos de llegada de la ruta mediante registros y consultas a pasajeros, para incorporar vehículos adicionales a los recorridos.",
+        "Formular ajustes a los horarios mediante registros de recorridos de otras universidades, para reducir la incertidumbre de llegada de los pasajeros."
+      ], correct:0 },
+    { titulo:"Accesibilidad de un portal", contexto:"Una alcaldía recibe quejas porque algunas personas con discapacidad visual no pueden completar trámites en su portal. El equipo desarrollará una evaluación y una propuesta de rediseño, no una nueva plataforma.",
+      opts:[
+        "Proponer ajustes de accesibilidad mediante evaluación técnica y pruebas con usuarios, para incorporar los cambios directamente al portal de trámites actual.",
+        "Evaluar la accesibilidad del portal mediante pruebas con usuarios y revisión técnica, para aumentar el número de trámites disponibles en línea.",
+        "Diseñar un portal accesible mediante evaluación técnica y pruebas con usuarios, para facilitar los trámites de personas con discapacidad visual.",
+        "Proponer ajustes de accesibilidad mediante evaluación técnica y pruebas con usuarios, para facilitar los trámites de personas con discapacidad visual."
+      ], correct:3 },
+    { titulo:"Desperdicio de alimentos", contexto:"Un comedor universitario descarta alimentos preparados al final del día. Antes de proponer cambios, el equipo debe conocer cantidades, horarios y causas del desperdicio.",
+      opts:[
+        "Caracterizar el desperdicio de alimentos mediante pesajes y entrevistas al personal, para organizar la entrega diaria de sobrantes a estudiantes.",
+        "Caracterizar el desperdicio de alimentos mediante pesajes, registros horarios y entrevistas al personal, para identificar causas y oportunidades de reducción.",
+        "Medir las cantidades de comida descartada mediante pesajes por horario en el comedor, para identificar qué platos prefieren los estudiantes.",
+        "Caracterizar el desperdicio de alimentos mediante encuestas a los usuarios del comedor, para identificar causas y oportunidades de reducción."
+      ], correct:1 },
+    { titulo:"Seguridad de contraseñas", contexto:"En una pequeña organización, varias personas reutilizan contraseñas. El equipo puede diseñar y evaluar un material de capacitación para mejorar esta práctica.",
+      opts:[
+        "Diseñar y evaluar una guía de contraseñas mediante pruebas con empleados, para configurar directamente las cuentas institucionales con nuevas claves.",
+        "Diseñar y evaluar una guía de contraseñas mediante pruebas con empleados, para mejorar la velocidad de acceso a las cuentas institucionales.",
+        "Diseñar y evaluar una guía de creación de contraseñas mediante pruebas con empleados, para mejorar el manejo de sus cuentas institucionales.",
+        "Evaluar los hábitos de contraseñas mediante encuestas a empleados, para elaborar un inventario de cuentas institucionales con mayor uso."
+      ], correct:2 },
+    { titulo:"Ruido en un vecindario", contexto:"Vecinos próximos a una avenida denuncian ruido nocturno. Una asociación estudiantil puede medirlo y presentar evidencia, pero no tiene autoridad para regular el tránsito.",
+      opts:[
+        "Medir el ruido nocturno mediante registros en puntos y horarios definidos junto a la avenida, para sustentar recomendaciones a la autoridad local.",
+        "Medir el ruido nocturno mediante registros en puntos y horarios definidos, para establecer restricciones de tránsito en la avenida del vecindario.",
+        "Caracterizar la percepción del ruido mediante entrevistas a vecinos de la avenida, para elaborar un mapa de las quejas recibidas recientemente.",
+        "Medir el ruido nocturno mediante registros en puntos y horarios definidos, para justificar el rediseño de las viviendas próximas a la avenida."
+      ], correct:0 },
+    { titulo:"Abandono de un curso virtual", contexto:"En un curso virtual ha aumentado el número de estudiantes que dejan de participar durante las primeras semanas. Se dispone de registros de acceso y se pueden hacer entrevistas breves.",
+      opts:[
+        "Analizar la participación inicial mediante registros de acceso y entrevistas, para programar mensajes de seguimiento a quienes dejan el curso.",
+        "Analizar los registros de acceso durante las primeras semanas, para identificar factores académicos y personales asociados al abandono del curso.",
+        "Analizar los patrones de participación mediante registros de acceso y entrevistas, para identificar asignaturas con mayor dificultad en el curso.",
+        "Analizar los patrones iniciales de participación mediante registros de acceso y entrevistas, para identificar factores asociados al abandono de estudiantes."
+      ], correct:3 },
+    { titulo:"Señalización de evacuación", contexto:"En un edificio público, visitantes nuevos tienen dificultades para encontrar las salidas. El equipo puede evaluar la señalización y entregar una propuesta gráfica, sin instalar señales.",
+      opts:[
+        "Diseñar una propuesta de señalización mediante recorridos y pruebas con visitantes, para colocar las señales nuevas en los pisos del edificio.",
+        "Diseñar una propuesta de señalización mediante recorridos de observación y pruebas con visitantes, para facilitar la identificación de salidas del edificio.",
+        "Evaluar la señalización mediante recorridos y pruebas con visitantes, para certificar la evacuación segura en todos los pisos del edificio.",
+        "Diseñar una propuesta de señalización mediante la revisión de planos del edificio, para facilitar la identificación de salidas a visitantes nuevos."
+      ], correct:1 },
+    { titulo:"Inventario de un taller", contexto:"Un taller comunitario lleva el inventario en hojas sueltas y pierde tiempo buscando herramientas. Se pide un modelo de registro que pueda evaluarse con quienes administran el espacio.",
+      opts:[
+        "Elaborar y probar un modelo de registro de herramientas mediante entrevistas y tareas de búsqueda, para facilitar el control del inventario.",
+        "Elaborar y probar un registro de herramientas mediante entrevistas y tareas de búsqueda, para reemplazar el inventario vigente del taller.",
+        "Elaborar y probar un modelo de registro mediante entrevistas y tareas de búsqueda, para identificar las reparaciones pendientes de las herramientas.",
+        "Analizar las herramientas mediante entrevistas a administradores y revisión de hojas sueltas, para decidir cuáles equipos debe comprar el taller."
+      ], correct:0 },
+    { titulo:"Información de becas", contexto:"Estudiantes de primer semestre dicen que no encuentran los requisitos y plazos de las becas. El equipo puede revisar los canales actuales y prototipar una guía de consulta.",
+      opts:[
+        "Prototipar una guía de becas mediante revisión de canales y pruebas con estudiantes, para publicarla como información oficial en la universidad.",
+        "Prototipar una guía de becas mediante revisión de canales y pruebas con estudiantes, para ampliar los requisitos de acceso a las ayudas.",
+        "Prototipar una guía de becas mediante revisión de canales y pruebas con estudiantes, para facilitar la consulta de requisitos y plazos.",
+        "Prototipar una guía de becas mediante entrevistas a estudiantes de último semestre, para facilitar la consulta de requisitos y plazos."
+      ], correct:2 },
+    { titulo:"Participación en una huerta", contexto:"Una huerta barrial tiene pocas personas voluntarias y las jornadas se organizan de forma improvisada. Se quiere plantear una estrategia de convocatoria y organización basada en información de la comunidad.",
+      opts:[
+        "Formular una estrategia de convocatoria y turnos mediante encuestas y revisión de jornadas, para asignar responsabilidades permanentes a cada vecino.",
+        "Formular una estrategia de convocatoria y turnos mediante encuestas y revisión de jornadas, para aumentar la producción anual de la huerta.",
+        "Formular una estrategia de convocatoria y turnos mediante encuestas a los voluntarios actuales, para facilitar la participación vecinal futura.",
+        "Formular una estrategia de convocatoria y turnos mediante encuestas y revisión de jornadas, para facilitar la participación de vecinos."
+      ], correct:3 }
+  ];
+
+  var POINTS_PER_ROUND = 100;
+  var MAX_SCORE = OBJETIVOS.length * POINTS_PER_ROUND;
+  var TIME_DUEL = 10;
+  var TIME_TRIVIA_ANSWER = 8;
+  var TIME_OBJETIVO_ANSWER = 22;
+
+  /* ==================================================================
+     utils
+     ================================================================== */
+  function esc(s){ return String(s||"").replace(/[&<>]/g, function(c){ return c==="&"?"&amp;":c==="<"?"&lt;":"&gt;"; }); }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+  function $(id){ return document.getElementById(id); }
+
+  /* ---- tiny arcade sound fx via WebAudio (no files needed) ---- */
+  var audioCtx = null;
+  var soundOn = true;
+  try{ soundOn = localStorage.getItem("duelo-vikingo-sound") !== "0"; }catch(e){}
+  function ensureCtx(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+    }
+    if(audioCtx && audioCtx.state === "suspended"){ audioCtx.resume(); }
+    return audioCtx;
+  }
+  function tone(freq, dur, type, gainVal, delay){
+    if(!soundOn) return;
+    var ctx = ensureCtx();
+    if(!ctx) return;
+    var t0 = ctx.currentTime + (delay||0);
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || "square";
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(gainVal||0.08, t0+0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0+dur+0.02);
+  }
+  function sfxBuzz(team){ tone(team==="blue"?520:340, .12, "square", .07); }
+  function sfxCorrect(){ tone(660,.09,"square",.07,0); tone(880,.09,"square",.07,.09); tone(1180,.14,"square",.08,.18); }
+  function sfxWrong(){ tone(220,.22,"sawtooth",.07,0); tone(140,.28,"sawtooth",.06,.08); }
+  function sfxClash(){ tone(90,.25,"square",.09,0); tone(70,.3,"sawtooth",.08,.03); }
+  function sfxVictory(){ [523,659,784,1046].forEach(function(f,i){ tone(f,.22,"square",.07,i*.13); }); }
+
+  /* ==================================================================
+     Viking fighter SVG (procedural, mirrored via CSS for the red side)
+     ================================================================== */
+  var FIGHTERS = {
+    blue: { m:{ name:"Björn", label:"Guerrero" }, f:{ name:"Freydis", label:"Guerrera" } },
+    red:  { m:{ name:"Ragnar", label:"Guerrero" }, f:{ name:"Sigrid",  label:"Guerrera" } }
+  };
+  var CRIES = {
+    m: ["{n} parte el escudo enemigo", "{n} carga con toda su fuerza", "{n} ruge y ataca"],
+    f: ["{n} esquiva y contraataca", "{n} embiste con precisión", "{n} gira y golpea sin fallar"]
+  };
+  function battleCry(team, gender){
+    var name = FIGHTERS[team][gender].name;
+    var pool = CRIES[gender];
+    var line = pool[Math.floor(Math.random()*pool.length)];
+    return line.replace("{n}", name);
+  }
+
+  var FIGHTER_IMG = {
+    blue: { m:"personajes/blue-m.webp", f:"personajes/blue-f.webp" },
+    red:  { m:"personajes/red-m.webp",  f:"personajes/red-f.webp" }
+  };
+
+  var fighterGender = { blue:"m", red:"m" };
+  function setFighterSprite(team){
+    var img = team === "blue" ? $("fighterBlueImg") : $("fighterRedImg");
+    img.src = FIGHTER_IMG[team][fighterGender[team]];
+    var f = FIGHTERS[team][fighterGender[team]];
+    img.alt = f.label + " vikingo " + f.name + " del equipo " + (team === "blue" ? "azul" : "rojo");
+    var nameEl = team === "blue" ? $("hudNameBlue") : $("hudNameRed");
+    if(nameEl) nameEl.textContent = f.label.toUpperCase() + " " + f.name;
+  }
+  setFighterSprite("blue");
+  setFighterSprite("red");
+
+  /* ==================================================================
+     game state
+     ================================================================== */
+  var order = shuffle(OBJETIVOS.map(function(_,i){ return i; }));
+  var triviaOrder = shuffle(TRIVIA.map(function(_,i){ return i; }));
+  var round = 0;
+  var scores = { blue:0, red:0 };
+  var hp = { blue:100, red:100 };
+  var HP_DAMAGE = 100 / OBJETIVOS.length;
+  var phase = "duel"; // duel -> duel-answer -> objetivo -> (loop)
+  var buzzedTeam = null;
+  var answeringTeam = null;
+  var timerId = null;
+  var timeLeft = 0;
+
+  var elTitle = $("challengeTitle"), elContext = $("challengeContext"), elPhaseTag = $("phaseTag");
+  var elOptions = $("optionsGrid"), elBuzzers = $("buzzers"), elFighterChoice = $("fighterChoice");
+  var elTimerFill = $("timerFill"), elFeedback = $("feedbackBanner"), elTurnNote = $("turnNote");
+  var elRoundLabel = $("roundLabel");
+  var elStage = $("stage");
+  var elFighterBlue = $("fighterBlue"), elFighterRed = $("fighterRed");
+  var elImpact = $("impactBurst");
+
+  function clearTimer(){ if(timerId){ clearInterval(timerId); timerId = null; } }
+
+  function startTimer(seconds, onExpire){
+    clearTimer();
+    timeLeft = seconds;
+    elTimerFill.style.width = "100%";
+    elTimerFill.classList.remove("low");
+    timerId = setInterval(function(){
+      timeLeft -= 0.1;
+      var pct = Math.max(0, (timeLeft/seconds)*100);
+      elTimerFill.style.width = pct + "%";
+      if(pct < 30) elTimerFill.classList.add("low");
+      if(timeLeft <= 0){
+        clearTimer();
+        onExpire();
+      }
+    }, 100);
+  }
+
+  function updateHud(){
+    var barBlue = $("barBlue"), barRed = $("barRed");
+    barBlue.style.width = hp.blue + "%";
+    barRed.style.width = hp.red + "%";
+    barBlue.classList.toggle("critical", hp.blue <= 25);
+    barRed.classList.toggle("critical", hp.red <= 25);
+    $("scoreBlue").textContent = scores.blue + " PTS";
+    $("scoreRed").textContent = scores.red + " PTS";
+    elRoundLabel.textContent = "RONDA " + Math.min(round+1, OBJETIVOS.length) + "/" + OBJETIVOS.length;
+  }
+
+  function setFeedback(text, cls){
+    elFeedback.textContent = text;
+    elFeedback.className = "feedback-banner show" + (cls ? " " + cls : "");
+    if(text){
+      setTimeout(function(){ elFeedback.classList.remove("show"); }, 1700);
+    }
+  }
+
+  function resetFighterClasses(){
+    elFighterBlue.classList.remove("clash-in","win","lose");
+    elFighterRed.classList.remove("clash-in","win","lose");
+  }
+
+  function clashAnimation(cb){
+    sfxClash();
+    resetFighterClasses();
+    elFighterBlue.classList.add("clash-in");
+    elFighterRed.classList.add("clash-in");
+    setTimeout(function(){
+      elStage.classList.add("shake");
+      document.body.classList.add("screen-shake");
+      elImpact.classList.remove("fire"); void elImpact.offsetWidth; elImpact.classList.add("fire");
+      setTimeout(function(){
+        elStage.classList.remove("shake");
+        document.body.classList.remove("screen-shake");
+      }, 380);
+    }, 480);
+    setTimeout(function(){
+      elFighterBlue.classList.remove("clash-in");
+      elFighterRed.classList.remove("clash-in");
+      if(cb) cb();
+    }, 1050);
+  }
+
+  /* ---------------- phase: duelo relámpago (cultura general) ---------------- */
+  function renderDuel(){
+    phase = "duel";
+    buzzedTeam = null;
+    answeringTeam = null;
+    resetFighterClasses();
+    elPhaseTag.textContent = "DUELO RELÁMPAGO";
+    elPhaseTag.className = "phase-tag duel";
+    var t = TRIVIA[triviaOrder[round % TRIVIA.length]];
+    elTitle.textContent = t.q;
+    elContext.textContent = "Cultura general: el primer equipo que pulse su botón intenta responder.";
+    elOptions.hidden = true;
+    elOptions.innerHTML = "";
+    elFighterChoice.hidden = true;
+    elBuzzers.hidden = false;
+    $("buzzBlue").disabled = false;
+    $("buzzRed").disabled = false;
+    elTurnNote.textContent = "Presionen su botón para intentar responder primero";
+    setFeedback("");
+    startTimer(TIME_DUEL, function(){
+      elTurnNote.textContent = "Nadie pulsó a tiempo — se pasa la ronda";
+      setFeedback("RONDA SIN RESPUESTA", "info");
+      setTimeout(nextRound, 1400);
+    });
+  }
+
+  function onBuzz(team){
+    if(phase !== "duel") return;
+    buzzedTeam = team;
+    phase = "duel-answer";
+    clearTimer();
+    sfxBuzz(team);
+    $("buzzBlue").disabled = true;
+    $("buzzRed").disabled = true;
+    elBuzzers.hidden = true;
+    elTurnNote.innerHTML = 'Responde <b class="'+team+'">EQUIPO ' + (team==="blue"?"AZUL":"ROJO") + '</b>';
+
+    var t = TRIVIA[triviaOrder[round % TRIVIA.length]];
+    elOptions.hidden = false;
+    elOptions.innerHTML = t.opts.map(function(opt, i){
+      return '<button type="button" class="opt-btn locked-team-'+team+'" data-i="'+i+'"><span class="k">'+String.fromCharCode(65+i)+'</span><span>'+esc(opt)+'</span></button>';
+    }).join("");
+
+    Array.prototype.forEach.call(elOptions.querySelectorAll(".opt-btn"), function(btn){
+      btn.addEventListener("click", function(){
+        answerDuel(+btn.getAttribute("data-i"), t);
+      });
+    });
+
+    startTimer(TIME_TRIVIA_ANSWER, function(){
+      answerDuel(-1, t);
+    });
+  }
+
+  function answerDuel(idx, t){
+    clearTimer();
+    Array.prototype.forEach.call(elOptions.querySelectorAll(".opt-btn"), function(btn){ btn.disabled = true; });
+    var correct = idx === t.correct;
+    if(idx >= 0){
+      var picked = elOptions.querySelector('[data-i="'+idx+'"]');
+      if(picked) picked.classList.add(correct ? "correct" : "wrong");
+    }
+    if(!correct){
+      var right = elOptions.querySelector('[data-i="'+t.correct+'"]');
+      if(right) right.classList.add("correct");
+    }
+
+    if(correct){
+      sfxCorrect();
+      answeringTeam = buzzedTeam;
+      setFeedback((buzzedTeam==="blue"?"AZUL":"ROJO") + " GANA EL DUELO", "win");
+    } else {
+      sfxWrong();
+      answeringTeam = buzzedTeam === "blue" ? "red" : "blue";
+      setFeedback((buzzedTeam==="blue"?"ROJO":"AZUL") + " ROBA EL TURNO", "info");
+    }
+    setTimeout(function(){ renderFighterChoice(); }, 1500);
+  }
+
+  /* ---------------- phase: elegir personaje antes del golpe ---------------- */
+  function renderFighterChoice(){
+    phase = "choose";
+    resetFighterClasses();
+    elPhaseTag.textContent = "ELIGE TU GUERRERO";
+    elPhaseTag.className = "phase-tag duel";
+    elTitle.textContent = "¿Quién ataca esta ronda?";
+    elContext.textContent = (answeringTeam==="blue"?"Equipo azul":"Equipo rojo") + ", elijan qué personaje intentará el golpe antes de ver la pregunta.";
+    elBuzzers.hidden = true;
+    elOptions.hidden = true;
+    elOptions.innerHTML = "";
+    elTimerFill.style.width = "100%";
+    clearTimer();
+    elTurnNote.textContent = "";
+    setFeedback("");
+
+    var f = FIGHTERS[answeringTeam];
+    elFighterChoice.hidden = false;
+    elFighterChoice.innerHTML =
+      '<button type="button" class="fc-btn '+answeringTeam+'" data-gender="m">' +
+        '<span class="fc-icon">⚔️</span><span class="fc-role">GUERRERO</span><span class="fc-name">'+f.m.name+'</span>' +
+      '</button>' +
+      '<button type="button" class="fc-btn '+answeringTeam+'" data-gender="f">' +
+        '<span class="fc-icon">🛡️</span><span class="fc-role">GUERRERA</span><span class="fc-name">'+f.f.name+'</span>' +
+      '</button>';
+
+    Array.prototype.forEach.call(elFighterChoice.querySelectorAll(".fc-btn"), function(btn){
+      btn.addEventListener("click", function(){
+        fighterGender[answeringTeam] = btn.getAttribute("data-gender");
+        setFighterSprite(answeringTeam);
+        elFighterChoice.hidden = true;
+        sfxBuzz(answeringTeam);
+        renderObjetivo();
+      });
+    });
+  }
+
+  /* ---------------- phase: pregunta de objetivo (banco UNAB) ---------------- */
+  function renderObjetivo(){
+    phase = "objetivo";
+    resetFighterClasses();
+    var o = OBJETIVOS[order[round % OBJETIVOS.length]];
+    elPhaseTag.textContent = "OBJETIVO BIEN FORMULADO · responde " + (answeringTeam==="blue"?"EQUIPO AZUL":"EQUIPO ROJO");
+    elPhaseTag.className = "phase-tag objetivo";
+    elTitle.textContent = o.titulo;
+    elContext.textContent = o.contexto;
+    elBuzzers.hidden = true;
+    elFighterChoice.hidden = true;
+    elOptions.hidden = false;
+    elOptions.innerHTML = o.opts.map(function(opt, i){
+      return '<button type="button" class="opt-btn locked-team-'+answeringTeam+'" data-i="'+i+'"><span class="k">'+String.fromCharCode(65+i)+'</span><span>'+esc(opt)+'</span></button>';
+    }).join("");
+    var fSel = FIGHTERS[answeringTeam][fighterGender[answeringTeam]];
+    elTurnNote.innerHTML = 'Elige la opción que expresa mejor el objetivo — <b class="'+answeringTeam+'">'+fSel.label.toUpperCase()+' '+fSel.name+'</b>';
+    setFeedback("");
+
+    Array.prototype.forEach.call(elOptions.querySelectorAll(".opt-btn"), function(btn){
+      btn.addEventListener("click", function(){
+        answerObjetivo(+btn.getAttribute("data-i"), o);
+      });
+    });
+
+    startTimer(TIME_OBJETIVO_ANSWER, function(){
+      answerObjetivo(-1, o);
+    });
+  }
+
+  function answerObjetivo(idx, o){
+    clearTimer();
+    Array.prototype.forEach.call(elOptions.querySelectorAll(".opt-btn"), function(btn){ btn.disabled = true; });
+    var correct = idx === o.correct;
+    if(idx >= 0){
+      var picked = elOptions.querySelector('[data-i="'+idx+'"]');
+      if(picked) picked.classList.add(correct ? "correct" : "wrong");
+    }
+    if(!correct){
+      var right = elOptions.querySelector('[data-i="'+o.correct+'"]');
+      if(right) right.classList.add("correct");
+    }
+
+    var winner = answeringTeam, loser = answeringTeam === "blue" ? "red" : "blue";
+
+    clashAnimation(function(){
+      if(correct){
+        sfxCorrect();
+        scores[winner] += POINTS_PER_ROUND;
+        hp[loser] = Math.max(0, hp[loser] - HP_DAMAGE);
+        updateHud();
+        (winner === "blue" ? elFighterBlue : elFighterRed).classList.add("win");
+        (loser === "blue" ? elFighterBlue : elFighterRed).classList.add("lose");
+        setFeedback("¡" + battleCry(winner, fighterGender[winner]).toUpperCase() + "! +" + POINTS_PER_ROUND, "win");
+      } else {
+        sfxWrong();
+        (winner === "blue" ? elFighterBlue : elFighterRed).classList.add("lose");
+        setFeedback("GOLPE FALLIDO — sin puntos", "fail");
+      }
+      setTimeout(nextRound, 1900);
+    });
+  }
+
+  function nextRound(){
+    round++;
+    resetFighterClasses();
+    if(round >= OBJETIVOS.length){
+      showFinal();
+    } else {
+      renderDuel();
+      updateHud();
+    }
+  }
+
+  function showFinal(){
+    sfxVictory();
+    $("finalBlue").textContent = scores.blue;
+    $("finalRed").textContent = scores.red;
+    var w = $("finalWinner");
+    if(scores.blue === scores.red){
+      w.textContent = "EMPATE ÉPICO";
+      w.className = "final-winner tie";
+    } else if(scores.blue > scores.red){
+      w.textContent = "GANA EQUIPO AZUL";
+      w.className = "final-winner blue";
+    } else {
+      w.textContent = "GANA EQUIPO ROJO";
+      w.className = "final-winner red";
+    }
+    $("finalOverlay").hidden = false;
+  }
+
+  /* ---------------- wiring ---------------- */
+  $("buzzBlue").addEventListener("click", function(){ onBuzz("blue"); });
+  $("buzzRed").addEventListener("click", function(){ onBuzz("red"); });
+
+  $("soundToggle").addEventListener("click", function(){
+    soundOn = !soundOn;
+    $("soundToggle").textContent = soundOn ? "🔊 Sonido: activado" : "🔈 Sonido: apagado";
+    try{ localStorage.setItem("duelo-vikingo-sound", soundOn ? "1" : "0"); }catch(e){}
+    if(soundOn) ensureCtx();
+  });
+  $("soundToggle").textContent = soundOn ? "🔊 Sonido: activado" : "🔈 Sonido: apagado";
+
+  function newGame(){
+    order = shuffle(OBJETIVOS.map(function(_,i){ return i; }));
+    triviaOrder = shuffle(TRIVIA.map(function(_,i){ return i; }));
+    round = 0;
+    scores = { blue:0, red:0 };
+    hp = { blue:100, red:100 };
+    fighterGender = { blue:"m", red:"m" };
+    setFighterSprite("blue");
+    setFighterSprite("red");
+    $("finalOverlay").hidden = true;
+    updateHud();
+    renderDuel();
+  }
+  $("resetGame").addEventListener("click", newGame);
+  $("playAgain").addEventListener("click", newGame);
+  $("closeFinal").addEventListener("click", function(){ $("finalOverlay").hidden = true; });
+
+  /* ---------------- boot ---------------- */
+  function start(){
+    updateHud();
+    renderDuel();
+  }
+
+  if(window.claude && window.claude.hot){
+    window.claude.hot.ready ? window.claude.hot.ready(start) : start();
+  } else {
+    start();
+  }
+})();
+</script>
+
+</body></html>
